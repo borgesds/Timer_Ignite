@@ -14,7 +14,7 @@ export const HeaderContainer = styled.header`
 
     span {
       color: ${(props) => props.theme['green-500']};
-      text-shadow: 1px 1px 2px ${(props) => props.theme['gray-900']};
+      text-shadow: 1px 2px 5px ${(props) => props.theme['gray-900']};
     }
   }
 
