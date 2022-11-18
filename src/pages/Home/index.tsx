@@ -49,6 +49,8 @@ export function Home() {
   const [cycles, setCycle] = useState<Cycle[]>([])
   /* qual ciclo está ativo */
   const [activeCycleId, setActiveCycleId] = useState<string | null>(null)
+  /* armazenar a quantidade de segundos que se passou */
+  const [amountSecundsPassed, setAmountSecundsPassed] = useState(0)
 
   const { register, handleSubmit, watch, reset } = useForm<NewCycleFormData>({
     resolver: zodResolver(newCycleFormValidationSchema),
@@ -85,6 +87,22 @@ export function Home() {
 
   /* vamos achar o id para rodar */
   const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId)
+
+  /* total dos segundos do contador */
+  const totalSeconds = activeCycle ? activeCycle.minutesAmount * 60 : 0
+
+  /* conta do total de segundos menos o que se passou */
+  const currentSeconds = activeCycle ? totalSeconds - amountSecundsPassed : 0
+
+  /* converter para minutos */
+  const minutesAmount = Math.floor(currentSeconds / 60)
+
+  /* converter os segundos restantes */
+  const secondsAmount = currentSeconds % 60
+
+  /* para tem 0 quando tiver so um carácter no contador */
+  const minutes = String(minutesAmount).padStart(2, '0')
+  const seconds = String(secondsAmount).padStart(2, '0')
 
   // podemos observar o campo task em tempo real
   // o task aqui e o que esta em {...register('task')}
@@ -128,11 +146,11 @@ export function Home() {
         </FormContainer>
 
         <CountdownContainer>
-          <span>0</span>
-          <span>0</span>
+          <span>{minutes[0]}</span>
+          <span>{minutes[1]}</span>
           <Separator>:</Separator>
-          <span>0</span>
-          <span>0</span>
+          <span>{seconds[0]}</span>
+          <span>{seconds[1]}</span>
         </CountdownContainer>
 
         <StartCountdownButton type="submit" disabled={isSubmitDisabled}>
