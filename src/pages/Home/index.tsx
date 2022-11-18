@@ -2,6 +2,7 @@ import { Play } from 'phosphor-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as zod from 'zod'
+import { useState } from 'react'
 import {
   CountdownContainer,
   FormContainer,
@@ -37,7 +38,18 @@ const newCycleFormValidationSchema = zod.object({
 
 type NewCycleFormData = zod.infer<typeof newCycleFormValidationSchema>
 
+interface Cycle {
+  id: string
+  task: string
+  minutesAmount: number
+}
+
+/* EXPORT */
 export function Home() {
+  const [cycles, setCycle] = useState<Cycle[]>([])
+  /* qual ciclo está ativo */
+  const [activeCycleId, setActiveCycleId] = useState<string | null>(null)
+
   const { register, handleSubmit, watch, reset } = useForm<NewCycleFormData>({
     resolver: zodResolver(newCycleFormValidationSchema),
     /* passar um valor inicial para os inputs */
@@ -47,13 +59,34 @@ export function Home() {
     },
   })
 
+  /* puxar os inputs */
   function handleCreateNewCycle(data: NewCycleFormData) {
-    console.log(data)
+    const id = String(new Date().getTime())
+
+    const newCycle: Cycle = {
+      id,
+      task: data.task,
+      minutesAmount: data.minutesAmount,
+    }
+
+    /* 
+    setCycle([...cycle, newCycle]) representa:
+    pegue o stado atual do cycle armazenado e
+    adicione o proximo input 
+     */
+    setCycle((state) => [...state, newCycle])
+
+    /* ciclo ativo */
+    setActiveCycleId(id)
+
     // limpa os campos e volta para defaultValues
     reset()
   }
 
-  // podemos observar o campo tesk em tempo real
+  /* vamos achar o id para rodar */
+  const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId)
+
+  // podemos observar o campo task em tempo real
   // o task aqui e o que esta em {...register('task')}
   const task = watch('task')
 
