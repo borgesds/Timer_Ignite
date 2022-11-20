@@ -1,8 +1,9 @@
-import { Play } from 'phosphor-react'
+import { HandPalm, Play } from 'phosphor-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as zod from 'zod'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { differenceInSeconds } from 'date-fns'
 import {
   CountdownContainer,
   FormContainer,
@@ -11,6 +12,7 @@ import {
   StartCountdownButton,
   TaskInput,
   MinutesAmountInput,
+  StopCountdownButton,
 } from './styles'
 
 /* 
@@ -42,6 +44,9 @@ interface Cycle {
   id: string
   task: string
   minutesAmount: number
+  startDate: Date
+  interruptedDate?: Date
+  finishedDate?: Date
 }
 
 /* EXPORT */
@@ -50,7 +55,7 @@ export function Home() {
   /* qual ciclo está ativo */
   const [activeCycleId, setActiveCycleId] = useState<string | null>(null)
   /* armazenar a quantidade de segundos que se passou */
-  const [amountSecundsPassed, setAmountSecundsPassed] = useState(0)
+  const [amountSecondsPassed, setAmountSecondsPassed] = useState(0)
 
   const { register, handleSubmit, watch, reset } = useForm<NewCycleFormData>({
     resolver: zodResolver(newCycleFormValidationSchema),
@@ -61,6 +66,55 @@ export function Home() {
     },
   })
 
+  /* vamos achar o id para rodar */
+  const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId)
+
+  /* total dos segundos do contador */
+  const totalSeconds = activeCycle ? activeCycle.minutesAmount * 60 : 0
+
+  /* 
+    CONTADOR
+    achar a diferença dos segundos,
+    e ativar o contador
+  */
+  useEffect(() => {
+    let interval: number
+
+    if (activeCycle) {
+      interval = setInterval(() => {
+        const secondsDifference = differenceInSeconds(
+          new Date(),
+          activeCycle.startDate,
+        )
+
+        // se chegou ao final completa o ciclo
+        if (secondsDifference >= totalSeconds) {
+          // state == cycles
+          setCycle((state) =>
+            state.map((cycle) => {
+              if (cycle.id === activeCycleId) {
+                return { ...cycle, finishedDate: new Date() }
+              } else {
+                return cycle
+              }
+            }),
+          )
+
+          setAmountSecondsPassed(totalSeconds)
+
+          clearInterval(interval)
+        } else {
+          setAmountSecondsPassed(secondsDifference)
+        }
+      }, 1000)
+    }
+
+    // dentro do useEffect podemos ter um retorno que sempre vai ser uma função
+    return () => {
+      clearInterval(interval)
+    }
+  }, [activeCycle, totalSeconds, activeCycleId])
+
   /* puxar os inputs */
   function handleCreateNewCycle(data: NewCycleFormData) {
     const id = String(new Date().getTime())
@@ -69,6 +123,7 @@ export function Home() {
       id,
       task: data.task,
       minutesAmount: data.minutesAmount,
+      startDate: new Date(),
     }
 
     /* 
@@ -78,21 +133,37 @@ export function Home() {
      */
     setCycle((state) => [...state, newCycle])
 
-    /* ciclo ativo */
+    // ciclo ativo
     setActiveCycleId(id)
+
+    /* aqui vai resetar os segundos para zero se criar
+     um novo projeto em quanto tiver rodando contador */
+    setAmountSecondsPassed(0)
 
     // limpa os campos e volta para defaultValues
     reset()
   }
 
-  /* vamos achar o id para rodar */
-  const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId)
+  /* voltar para 0 o contador assim que interromper */
+  function handleInterruptCycle() {
+    // Retornar de dentro do ciclo se foi alterado ou não
+    // state == cycles
+    setCycle((state) =>
+      state.map((cycle) => {
+        if (cycle.id === activeCycleId) {
+          return { ...cycle, interruptedDate: new Date() }
+        } else {
+          return cycle
+        }
+      }),
+    )
 
-  /* total dos segundos do contador */
-  const totalSeconds = activeCycle ? activeCycle.minutesAmount * 60 : 0
+    // aqui dizemos que não temos nenhum ciclo ativo
+    setActiveCycleId(null)
+  }
 
   /* conta do total de segundos menos o que se passou */
-  const currentSeconds = activeCycle ? totalSeconds - amountSecundsPassed : 0
+  const currentSeconds = activeCycle ? totalSeconds - amountSecondsPassed : 0
 
   /* converter para minutos */
   const minutesAmount = Math.floor(currentSeconds / 60)
@@ -103,6 +174,15 @@ export function Home() {
   /* para tem 0 quando tiver so um carácter no contador */
   const minutes = String(minutesAmount).padStart(2, '0')
   const seconds = String(secondsAmount).padStart(2, '0')
+
+  /* vamos atualizar o titulo da janela com o contador */
+  useEffect(() => {
+    if (activeCycle) {
+      document.title = `Tarefa termina em ${minutes}:${seconds}`
+    } else {
+      document.title = `CronoS`
+    }
+  }, [minutes, seconds, activeCycle])
 
   // podemos observar o campo task em tempo real
   // o task aqui e o que esta em {...register('task')}
@@ -121,6 +201,7 @@ export function Home() {
             id="task"
             list="task-suggestions"
             placeholder="Dê um nome para o seu projeto"
+            disabled={!!activeCycle}
             {...register('task')}
           />
 
@@ -139,6 +220,7 @@ export function Home() {
             step={5}
             min={5}
             max={60}
+            disabled={!!activeCycle}
             {...register('minutesAmount', { valueAsNumber: true })}
           />
 
@@ -153,10 +235,18 @@ export function Home() {
           <span>{seconds[1]}</span>
         </CountdownContainer>
 
-        <StartCountdownButton type="submit" disabled={isSubmitDisabled}>
-          <Play size={24} />
-          Começar
-        </StartCountdownButton>
+        {/* vamos atualizar o botão se ele tiver ativo ou não */}
+        {activeCycleId ? (
+          <StopCountdownButton onClick={handleInterruptCycle} type="button">
+            <HandPalm size={24} />
+            Interromper
+          </StopCountdownButton>
+        ) : (
+          <StartCountdownButton type="submit" disabled={isSubmitDisabled}>
+            <Play size={24} />
+            Começar
+          </StartCountdownButton>
+        )}
       </form>
     </HomeContainer>
   )
