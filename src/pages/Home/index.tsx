@@ -34,8 +34,10 @@ interface Cycle {
 interface CyclesContextType {
   activeCycle: Cycle | undefined
   activeCycleId: string | null
+  markCurrentCycleAsFinished: () => void // é uma função e n tem retorno
 }
 
+/* Exporta o que tive no CyclesContextType */
 export const CyclesContext = createContext({} as CyclesContextType)
 
 /* EXPORT */
@@ -48,34 +50,47 @@ export function Home() {
   /* vamos achar o id para rodar */
   const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId)
 
-  /* puxar os inputs */
-  function handleCreateNewCycle(data: NewCycleFormData) {
-    const id = String(new Date().getTime())
-
-    const newCycle: Cycle = {
-      id,
-      task: data.task,
-      minutesAmount: data.minutesAmount,
-      startDate: new Date(),
-    }
-
-    /* 
-    setCycle([...cycle, newCycle]) representa:
-    pegue o stado atual do cycle armazenado e
-    adicione o proximo input 
-     */
-    setCycles((state) => [...state, newCycle])
-
-    // ciclo ativo
-    setActiveCycleId(id)
-
-    /* aqui vai resetar os segundos para zero se criar
-     um novo projeto em quanto tiver rodando contador */
-    setAmountSecondsPassed(0)
-
-    // limpa os campos e volta para defaultValues
-    reset()
+  /* Marcar um ciclo como finalizado, sera mandada para Countdown */
+  function markCurrentCycleAsFinished() {
+    setCycles((state) =>
+      state.map((cycle) => {
+        if (cycle.id === activeCycleId) {
+          return { ...cycle, finishedDate: new Date() }
+        } else {
+          return cycle
+        }
+      }),
+    )
   }
+
+  /* puxar os inputs */
+  // function handleCreateNewCycle(data: NewCycleFormData) {
+  //   const id = String(new Date().getTime())
+
+  //   const newCycle: Cycle = {
+  //     id,
+  //     task: data.task,
+  //     minutesAmount: data.minutesAmount,
+  //     startDate: new Date(),
+  //   }
+
+  //   /* 
+  //   setCycle([...cycle, newCycle]) representa:
+  //   pegue o stado atual do cycle armazenado e
+  //   adicione o proximo input 
+  //    */
+  //   setCycles((state) => [...state, newCycle])
+
+  //   // ciclo ativo
+  //   setActiveCycleId(id)
+
+  //   /* aqui vai resetar os segundos para zero se criar
+  //    um novo projeto em quanto tiver rodando contador */
+  //   setAmountSecondsPassed(0)
+
+  //   // limpa os campos e volta para defaultValues
+  //   reset()
+  // }
 
   /* voltar para 0 o contador assim que interromper */
   function handleInterruptCycle() {
@@ -95,23 +110,24 @@ export function Home() {
     setActiveCycleId(null)
   }
 
-
-
   // podemos observar o campo task em tempo real
   // o task aqui e o que esta em {...register('task')}
-  const task = watch('task')
+  // const task = watch('task')
 
   // criar uma variavel para que quando digitar no input ative o botão
   // essa variavel é simplesmente para deixar o codigo mais legivel
-  const isSubmitDisabled = !task
+  // const isSubmitDisabled = !task
 
   return (
     <HomeContainer>
-      <form action="" onSubmit={handleSubmit(handleCreateNewCycle)}>
-        <CyclesContext.Provider value={{ activeCycle, activeCycleId }}>
-          <NewCycleForm />
+      <form action="" /* onSubmit={handleSubmit(handleCreateNewCycle)} */>
+        {/* o value esta mandando as funções para Countdown */}
+        <CyclesContext.Provider
+          value={{ activeCycle, activeCycleId, markCurrentCycleAsFinished }}
+        >
+          {/* <NewCycleForm /> */}
 
-          <Countdown/>
+          <Countdown />
         </CyclesContext.Provider>
 
         {/* vamos atualizar o botão se ele tiver ativo ou não */}
@@ -121,7 +137,7 @@ export function Home() {
             Interromper
           </StopCountdownButton>
         ) : (
-          <StartCountdownButton type="submit" disabled={isSubmitDisabled}>
+          <StartCountdownButton type="submit" /* disabled={isSubmitDisabled} */>
             <Play size={24} />
             Começar
           </StartCountdownButton>

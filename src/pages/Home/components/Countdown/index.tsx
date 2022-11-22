@@ -4,8 +4,9 @@ import { CyclesContext } from '../..'
 import { CountdownContainer, Separator } from './styles'
 
 export function Countdown() {
-  /* busca dentro de Home o CyclesContex */
-  const { activeCycle, activeCycleId } = useContext(CyclesContext)
+  /* busca dentro de Home o CyclesContex que esta exportando */
+  const { activeCycle, activeCycleId, markCurrentCycleAsFinished } =
+    useContext(CyclesContext)
 
   /* armazenar a quantidade de segundos que se passou */
   const [amountSecondsPassed, setAmountSecondsPassed] = useState(0)
@@ -30,7 +31,9 @@ export function Countdown() {
 
         // se chegou ao final completa o ciclo
         if (secondsDifference >= totalSeconds) {
+          markCurrentCycleAsFinished()
           // state == cycles
+          /* markCurrentCycleAsFinishe e o que vale:
           setCycles((state) =>
             state.map((cycle) => {
               if (cycle.id === activeCycleId) {
@@ -39,7 +42,7 @@ export function Countdown() {
                 return cycle
               }
             }),
-          )
+          ) */
 
           setAmountSecondsPassed(totalSeconds)
 
@@ -54,7 +57,7 @@ export function Countdown() {
     return () => {
       clearInterval(interval)
     }
-  }, [activeCycle, totalSeconds, activeCycleId])
+  }, [activeCycle, totalSeconds, activeCycleId, markCurrentCycleAsFinished])
 
   /* conta do total de segundos menos o que se passou */
   const currentSeconds = activeCycle ? totalSeconds - amountSecondsPassed : 0
