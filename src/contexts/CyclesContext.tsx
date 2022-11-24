@@ -1,4 +1,4 @@
-import { createContext, useState } from 'react'
+import { createContext, ReactNode, useState } from 'react'
 
 interface CreateCycleData {
   task: string
@@ -16,6 +16,7 @@ interface Cycle {
 
 /* Tudo que vai ser usado no createContext */
 interface CyclesContextType {
+  cycles: Cycle[]
   activeCycle: Cycle | undefined
   activeCycleId: string | null
   amountSecondsPassed: number
@@ -28,7 +29,13 @@ interface CyclesContextType {
 /* Exporta o que tive no CyclesContextType */
 export const CyclesContext = createContext({} as CyclesContextType)
 
-export function CyclesContextProvider() {
+interface CyclesContextProviderProps {
+  children: ReactNode // Retorna qualquer html ou jsx valido
+}
+
+export function CyclesContextProvider({
+  children,
+}: CyclesContextProviderProps) {
   const [cycles, setCycles] = useState<Cycle[]>([])
 
   /* qual ciclo está ativo */
@@ -83,9 +90,6 @@ export function CyclesContextProvider() {
     /* aqui vai resetar os segundos para zero se criar
     um novo projeto em quanto tiver rodando contador */
     setAmountSecondsPassed(0)
-
-    // limpa os campos e volta para defaultValues
-    // reset()
   }
 
   /* voltar para 0 o contador assim que interromper */
@@ -111,6 +115,7 @@ export function CyclesContextProvider() {
     Countdown, NewCycleForm e History */
     <CyclesContext.Provider
       value={{
+        cycles,
         activeCycle,
         activeCycleId,
         markCurrentCycleAsFinished,
@@ -119,6 +124,9 @@ export function CyclesContextProvider() {
         createNewCycle,
         interruptCurrentCycle,
       }}
-    ></CyclesContext.Provider>
+    >
+      {/* esta buscando dentro do app a Route como filho */}
+      {children}
+    </CyclesContext.Provider>
   )
 }

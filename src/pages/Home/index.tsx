@@ -2,7 +2,7 @@ import { HandPalm, Play } from 'phosphor-react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as zod from 'zod'
-import { createContext, useState } from 'react'
+import { useContext } from 'react'
 import {
   HomeContainer,
   StartCountdownButton,
@@ -10,6 +10,7 @@ import {
 } from './styles'
 import { NewCycleForm } from './components/NewCycleForm'
 import { Countdown } from './components/Countdown'
+import { CyclesContext } from '../../contexts/CyclesContext'
 
 /* 
 
@@ -32,6 +33,8 @@ type NewCycleFormData = zod.infer<typeof newCycleFormValidationSchema>
 
 /* EXPORT */
 export function Home() {
+  const { activeCycle, createNewCycle, interruptCurrentCycle } =
+    useContext(CyclesContext)
   const newCycleForm = useForm<NewCycleFormData>({
     resolver: zodResolver(newCycleFormValidationSchema),
     /* passar um valor inicial para os inputs */
@@ -42,6 +45,14 @@ export function Home() {
   })
 
   const { handleSubmit, watch, reset } = newCycleForm
+
+  // cria um novo formulario
+  // limpa os campos e volta para defaultValues
+  function handleCreateNewCycle(data: NewCycleFormData) {
+    createNewCycle(data)
+
+    reset()
+  }
 
   // podemos observar o campo task em tempo real
   // o task aqui e o que esta em {...register('task')}
@@ -61,8 +72,8 @@ export function Home() {
         <Countdown />
 
         {/* vamos atualizar o botão se ele tiver ativo ou não */}
-        {activeCycleId ? (
-          <StopCountdownButton onClick={handleInterruptCycle} type="button">
+        {activeCycle ? (
+          <StopCountdownButton onClick={interruptCurrentCycle} type="button">
             <HandPalm size={24} />
             Interromper
           </StopCountdownButton>
