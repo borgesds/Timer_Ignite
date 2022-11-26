@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useState } from 'react'
+import { createContext, ReactNode, useState, useReducer } from 'react'
 
 interface CreateCycleData {
   task: string
@@ -33,16 +33,54 @@ interface CyclesContextProviderProps {
   children: ReactNode // Retorna qualquer html ou jsx valido
 }
 
+interface CyclesState {
+  cycles: Cycle[]
+  activeCycleId: string | null
+}
+
 export function CyclesContextProvider({
   children,
 }: CyclesContextProviderProps) {
-  const [cycles, setCycles] = useState<Cycle[]>([])
+  const [cyclesState, dispatch] = useReducer(
+    (state: CyclesState, action: any) => {
+      if (action.type === 'ADD_NEW_CYCLE') {
+        return {
+          ...state,
+          cycles: [...state.cycles, action.payload.newCycle],
+          // pega o Id do newCycle e coloca como Id ativo
+          activeCycleId: action.payload.newCycle.id,
+        }
+      }
 
-  /* qual ciclo está ativo */
-  const [activeCycleId, setActiveCycleId] = useState<string | null>(null)
+      if (action.type === 'INTERRUPT_CURRENT_CYCLE') {
+        return {
+          ...state,
+          cycles: state.cycles.map((cycle) => {
+            if (cycle.id === state.activeCycleId) {
+              return { ...cycle, interruptedDate: new Date() }
+            } else {
+              return cycle
+            }
+          }),
+          activeCycleId: null,
+        }
+      }
+      return state
+    },
+    {
+      cycles: [],
+      activeCycleId: null,
+    },
+  )
+
+  /* qual ciclo está ativo, 
+     foi substituído por const {cycles, activeCycleId} = cyclesState */
+  // const [activeCycleId, setActiveCycleId] = useState<string | null>(null)
 
   /* armazenar a quantidade de segundos que se passou */
   const [amountSecondsPassed, setAmountSecondsPassed] = useState(0)
+
+  const { cycles, activeCycleId } = cyclesState
 
   /* vamos achar o id para rodar  */
   const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId)
@@ -55,15 +93,21 @@ export function CyclesContextProvider({
 
   /* Marcar um ciclo como finalizado, sera mandada para Countdown */
   function markCurrentCycleAsFinished() {
-    setCycles((state) =>
-      state.map((cycle) => {
-        if (cycle.id === activeCycleId) {
-          return { ...cycle, finishedDate: new Date() }
-        } else {
-          return cycle
-        }
-      }),
-    )
+    dispatch({
+      type: 'MARK_CURRENT_CYCLE_AS_FINISHED',
+      payload: {
+        activeCycleId,
+      },
+    })
+    // setCycles((state) =>
+    //   state.map((cycle) => {
+    //     if (cycle.id === activeCycleId) {
+    //       return { ...cycle, finishedDate: new Date() }
+    //     } else {
+    //       return cycle
+    //     }
+    //   }),
+    // )
   }
 
   /* puxar os inputs */
@@ -82,10 +126,17 @@ export function CyclesContextProvider({
     pegue o stado atual do cycle armazenado e
     adicione o proximo input 
     */
-    setCycles((state) => [...state, newCycle])
+    dispatch({
+      type: 'ADD_NEW_CYCLE',
+      payload: {
+        newCycle,
+      },
+    })
+    // setCycles((state) => [...state, newCycle])
 
     // ciclo ativo
-    setActiveCycleId(id)
+    // foi para dentro do useReducer la em cima
+    // setActiveCycleId(id)
 
     /* aqui vai resetar os segundos para zero se criar
     um novo projeto em quanto tiver rodando contador */
@@ -94,20 +145,27 @@ export function CyclesContextProvider({
 
   /* voltar para 0 o contador assim que interromper */
   function interruptCurrentCycle() {
+    dispatch({
+      type: 'INTERRUPT_CURRENT_CYCLE',
+      payload: {
+        activeCycleId,
+      },
+    })
     // Retornar de dentro do ciclo se foi alterado ou não
     // state == cycles
-    setCycles((state) =>
-      state.map((cycle) => {
-        if (cycle.id === activeCycleId) {
-          return { ...cycle, interruptedDate: new Date() }
-        } else {
-          return cycle
-        }
-      }),
-    )
+    // setCycles((state) =>
+    //   state.map((cycle) => {
+    //     if (cycle.id === activeCycleId) {
+    //       return { ...cycle, interruptedDate: new Date() }
+    //     } else {
+    //       return cycle
+    //     }
+    //   }),
+    // )
 
     // aqui dizemos que não temos nenhum ciclo ativo
-    setActiveCycleId(null)
+    // foi para dentro do useReducer la em cima
+    // setActiveCycleId(null)
   }
 
   return (
